@@ -1,5 +1,5 @@
 # Python 3.10 slim — Flask 站点
-FROM python:3.10-slim
+FROM docker.1ms.run/python:3.10-slim
 
 WORKDIR /app
 
