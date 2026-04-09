@@ -1,0 +1,18 @@
+services:
+  web:
+    build: .
+    image: myweb:latest
+    ports:
+      - "${PORT:-5001}:5001"
+    environment:
+      PORT: "5001"
+    volumes:
+      # SQLite：站点 JSON、编辑器密码等
+      - myweb_data:/app/data
+      # 用户上传图片（站点图标 iN、slot_* 等）
+      - myweb_uploads:/app/static/uploads
+    restart: unless-stopped
+
+volumes:
+  myweb_data:
+  myweb_uploads:
