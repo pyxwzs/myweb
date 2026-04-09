@@ -1,6 +1,5 @@
 services:
   web:
-    build: .
     image: myweb:latest
     ports:
       - "${PORT:-5001}:5001"
