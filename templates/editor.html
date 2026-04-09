@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>内容编辑器</title>
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" id="favicon">
+    <script>
+        fetch('./api/content', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'get'}) })
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                if (data && data.site && data.site.favicon)
+                    document.getElementById('favicon').href = data.site.favicon;
+            })
+            .catch(function(){});
+    </script>
+    <style>
+        @font-face { font-family: "b"; src: url({{ url_for('static', filename='fonts/Ubuntu-Regular.ttf') }}); font-display: swap; }
+        @font-face { font-family: "title"; src: url({{ url_for('static', filename='fonts/Pacifico-Regular.ttf') }}); font-display: swap; }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:       url({{ url_for('static', filename='img/background.jpg') }});
+            --glass:    rgba(0,0,0,0.32);
+            --glass-hv: rgba(0,0,0,0.18);
+            --border:   rgba(255,255,255,0.08);
+            --text:     #eeeeee;
+            --muted:    rgba(255,255,255,0.45);
+            --accent:   #bd34fe;
+            --accent2:  #41d1ff;
+            --red:      #e94560;
+            --radius:   13px;
+            --blur:     15px;
+        }
+
+        body {
+            font-family: "b", system-ui, sans-serif;
+            background: var(--bg) center/cover fixed no-repeat;
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            font-size: 15px;
+        }
+
+        /* ── 伪背景遮罩 ── */
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.30);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ══ 侧边导航 ══ */
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0;
+            width: 20%;
+            height: 100vh;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            padding: 24px 14px 20px;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
+            border-right: 1px solid var(--border);
+        }
+
+        .sidebar-title {
+            font-family: "title";
+            font-size: 1.35rem;
+            background: linear-gradient(120deg, var(--accent), #e0321b 40%, var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+        }
+
+        .sidebar-sub {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-bottom: 22px;
+            line-height: 1.4;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.92rem;
+            color: var(--muted);
+            transition: background 0.2s, color 0.2s;
+            text-decoration: none;
+            user-select: none;
+        }
+        .nav-item:hover { background: var(--glass-hv); color: var(--text); }
+        .nav-item.active { background: var(--glass); color: var(--text); }
+        .nav-icon { font-size: 14px; width: 16px; text-align: center; }
+
+        .sidebar-actions {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        /* ══ 主内容区 ══ */
+        .main {
+            margin-left: 20%;
+            flex: 1;
+            padding: 28px 28px 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ══ 模块卡片 ══ */
+        .panel {
+            background: var(--glass);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            scroll-margin-top: 28px;
+        }
+
+        .panel-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .panel-title span { font-size: 15px; }
+        .panel-hint {
+            font-size: 0.75rem;
+            color: var(--muted);
+            line-height: 1.45;
+            margin: -6px 0 12px;
+        }
+
+        /* ══ 表单元素 ══ */
+        .fields { display: flex; flex-wrap: wrap; gap: 10px; }
+        .field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+        .f-full  { flex: 1 1 100%; }
+        .f-half  { flex: 1 1 calc(50% - 5px); }
+        .f-third { flex: 1 1 calc(33.3% - 7px); }
+        .f-auto  { flex: 1 1 120px; }
+
+        label {
+            font-size: 0.82rem;
+            color: var(--muted);
+            letter-spacing: 0.03em;
+        }
+        input[type="text"],
+        input[type="url"],
+        textarea {
+            width: 100%;
+            padding: 9px 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 7px;
+            color: #fff;
+            font-size: 14px;
+            font-family: "b", system-ui, sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input::placeholder, textarea::placeholder {
+            color: rgba(255,255,255,0.3);
+        }
+        input:focus, textarea:focus {
+            border-color: rgba(189,52,254,0.6);
+            background: rgba(255,255,255,0.13);
+        }
+        textarea { resize: vertical; min-height: 40px; }
+
+        select.card-img-select {
+            flex: 1;
+            min-width: 0;
+            max-width: 220px;
+            padding: 9px 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 7px;
+            color: #fff;
+            font-size: 13px;
+            font-family: "b", system-ui, sans-serif;
+            outline: none;
+            cursor: pointer;
+        }
+        select.card-img-select:focus {
+            border-color: rgba(189,52,254,0.6);
+        }
+        select.card-img-select option { background: #1a1a24; color: #eee; }
+
+        .card-img-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+            max-width: 280px;
+        }
+        .card-img-thumb {
+            width: 38px;
+            height: 38px;
+            object-fit: cover;
+            border-radius: 8px;
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid var(--border);
+        }
+
+        .input-with-upload {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+            width: 100%;
+        }
+        .input-with-upload > input { flex: 1; min-width: 0; }
+        .btn-compact {
+            flex-shrink: 0;
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+        .btn-upload-cell {
+            flex-shrink: 0;
+            padding: 6px 8px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.12);
+            color: var(--text);
+            font-family: "b", system-ui, sans-serif;
+            transition: background 0.2s;
+        }
+        .btn-upload-cell:hover { background: rgba(189,52,254,0.25); }
+
+        /* ══ 列表行 ══ */
+        .list-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 7px 10px;
+            margin-bottom: 6px;
+        }
+        .list-row input { flex: 1; min-width: 0; }
+        .list-row .date-input { flex: 0 0 80px; }
+
+        /* ══ 按钮 ══ */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 5px;
+            padding: 8px 16px;
+            border: none; border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: "b", system-ui, sans-serif;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .btn:hover { opacity: 0.88; }
+        .btn:active { transform: scale(0.97); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--red));
+            color: #fff;
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-ghost {
+            background: transparent;
+            border: 1px dashed var(--border);
+            color: var(--muted);
+            font-size: 12px;
+            padding: 5px 12px;
+        }
+        .btn-ghost:hover { border-color: rgba(255,255,255,0.25); color: var(--text); }
+        .btn-del {
+            background: rgba(233,69,96,0.15);
+            border: 1px solid rgba(233,69,96,0.25);
+            color: var(--red);
+            font-size: 11px;
+            padding: 3px 8px;
+            flex-shrink: 0;
+        }
+        .btn-del:hover { background: rgba(233,69,96,0.3); }
+
+        /* ══ 密码锁屏 ══ */
+        #lock-screen {
+            position: fixed; inset: 0; z-index: 99999;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--bg, #0a0a14) center/cover fixed no-repeat;
+        }
+        #lock-screen::before {
+            content: ''; position: absolute; inset: 0;
+            background: rgba(0,0,0,0.55);
+        }
+        .lock-card {
+            position: relative; z-index: 1;
+            background: rgba(0,0,0,0.45);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 18px;
+            padding: 40px 44px;
+            width: 360px;
+            text-align: center;
+        }
+        .lock-title {
+            font-family: "title";
+            font-size: 2rem;
+            background: linear-gradient(120deg, #bd34fe, #e0321b 40%, #41d1ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+        }
+        .lock-sub { font-size: 0.82rem; color: rgba(255,255,255,0.4); margin-bottom: 28px; }
+        .lock-input {
+            width: 100%; padding: 11px 14px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 9px;
+            color: #fff; font-size: 15px;
+            font-family: "b", system-ui, sans-serif;
+            outline: none; text-align: center;
+            letter-spacing: 4px;
+            margin-bottom: 14px;
+            transition: border-color 0.2s;
+        }
+        .lock-input:focus { border-color: rgba(189,52,254,0.6); }
+        .lock-btn {
+            width: 100%; padding: 11px;
+            background: linear-gradient(135deg, #bd34fe, #e94560);
+            border: none; border-radius: 9px;
+            color: #fff; font-size: 14px;
+            font-family: "b", system-ui, sans-serif;
+            cursor: pointer; transition: opacity 0.2s;
+        }
+        .lock-btn:hover { opacity: 0.88; }
+        .lock-error {
+            font-size: 0.78rem; color: #e94560;
+            margin-top: 10px; min-height: 18px;
+        }
+        .lock-hint { font-size: 0.72rem; color: rgba(255,255,255,0.25); margin-top: 16px; }
+        #toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: rgba(20,20,30,0.9);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            padding: 10px 18px;
+            border-radius: 9px;
+            font-size: 13px;
+            display: none; z-index: 9999;
+        }
+        #toast.show { display: block; animation: fadeout 2.2s ease-out forwards; }
+        @keyframes fadeout { 0%,65%{opacity:1} 100%{opacity:0} }
+
+        /* ══ 自定义确认弹窗 ══ */
+        #confirm-modal {
+            display: none;
+            position: fixed; inset: 0; z-index: 999999;
+            align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        #confirm-modal.show { display: flex; }
+        .confirm-card {
+            background: rgba(10,10,20,0.75);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 18px;
+            padding: 36px 40px 28px;
+            width: 340px;
+            text-align: center;
+            animation: pop-in 0.18s ease-out;
+        }
+        @keyframes pop-in { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
+        .confirm-icon { font-size: 2.2rem; margin-bottom: 12px; }
+        .confirm-title {
+            font-size: 1.05rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .confirm-desc { font-size: 0.82rem; color: rgba(255,255,255,0.45); margin-bottom: 26px; line-height: 1.6; }
+        .confirm-btns { display: flex; gap: 10px; justify-content: center; }
+        .confirm-cancel {
+            flex: 1;
+            padding: 9px 0;
+            border-radius: 9px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            font-size: 13px;
+            font-family: "b", system-ui, sans-serif;
+            transition: background 0.2s;
+        }
+        .confirm-cancel:hover { background: rgba(255,255,255,0.12); color: #fff; }
+        .confirm-ok {
+            flex: 1;
+            padding: 9px 0;
+            border-radius: 9px;
+            border: none;
+            background: linear-gradient(135deg, var(--red), #a0102a);
+            color: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: "b", system-ui, sans-serif;
+            transition: opacity 0.2s;
+        }
+        .confirm-ok:hover { opacity: 0.85; }
+
+        /* ══ 修改密码弹窗 ══ */
+        #pwd-modal {
+            display: none;
+            position: fixed; inset: 0; z-index: 999999;
+            align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        #pwd-modal.show { display: flex; }
+        .pwd-card {
+            width: min(400px, calc(100vw - 32px));
+            text-align: left;
+        }
+        .pwd-card .confirm-title { text-align: center; }
+        .pwd-card .confirm-icon { text-align: center; }
+        .pwd-card .confirm-desc { text-align: center; }
+        .pwd-field-wrap { margin-bottom: 4px; }
+        .pwd-field-wrap:first-of-type { margin-top: 4px; }
+        .pwd-field-label {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-bottom: 6px;
+            letter-spacing: 0.02em;
+        }
+        .pwd-input {
+            width: 100%;
+            padding: 11px 14px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 9px;
+            color: #fff;
+            font-size: 14px;
+            font-family: "b", system-ui, sans-serif;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .pwd-input::placeholder { color: rgba(255,255,255,0.25); }
+        .pwd-input:focus {
+            border-color: rgba(189,52,254,0.55);
+            box-shadow: 0 0 0 3px rgba(189,52,254,0.12);
+        }
+        #pwd-modal-error {
+            font-size: 0.78rem;
+            color: var(--red);
+            min-height: 20px;
+            margin: 10px 0 6px;
+            text-align: center;
+        }
+        .pwd-submit {
+            background: linear-gradient(135deg, var(--accent), #e0321b 50%, var(--accent2)) !important;
+        }
+        .pwd-submit:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        /* ══ 滚动条 ══ */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<!-- ══ 密码锁屏 ══ -->
+<div id="lock-screen">
+    <div class="lock-card">
+        <div class="lock-title">Editor</div>
+        <div class="lock-sub">请输入密码以继续</div>
+        <input class="lock-input" type="password" id="lock-input" placeholder="••••••••" maxlength="32" autocomplete="current-password">
+        <button class="lock-btn" id="lock-btn">进入编辑器</button>
+        <div class="lock-error" id="lock-error"></div>
+    </div>
+</div>
+
+<!-- ══ 编辑器主体（未解锁时隐藏）══ -->
+<div id="editor-body" style="display:none">
+
+<!-- ══ 侧边导航 ══ -->
+<aside class="sidebar">
+    <div class="sidebar-title">Editor</div>
+    <div class="sidebar-sub">可视化编辑站点内容</div>
+
+    <a class="nav-item active" href="#sec-site">    <span class="nav-icon">🌐</span> 站点信息</a>
+    <a class="nav-item"        href="#sec-profile"> <span class="nav-icon">👤</span> 个人资料</a>
+    <a class="nav-item"        href="#sec-tags">    <span class="nav-icon">🏷️</span> 标签</a>
+    <a class="nav-item"        href="#sec-timeline"><span class="nav-icon">📅</span> 时间线</a>
+    <a class="nav-item"        href="#sec-sites">   <span class="nav-icon">🔗</span> 站点列表</a>
+    <a class="nav-item"        href="#sec-projects"><span class="nav-icon">📦</span> 项目列表</a>
+    <a class="nav-item"        href="#sec-links">   <span class="nav-icon">💬</span> 链接图片</a>
+    <a class="nav-item"        href="#sec-footer">  <span class="nav-icon">📄</span> 页脚</a>
+
+    <div class="sidebar-actions">
+        <a class="btn btn-secondary" href="{{ url_for('pages.index') }}">🏠 返回首页</a>
+        <button class="btn btn-primary" id="save-local">💾 保存到服务器</button>
+        <button class="btn btn-ghost" id="change-pwd">🔑 修改密码</button>
+        <button class="btn btn-ghost" id="logout" style="color:#e94560;border-color:rgba(233,69,96,0.3);">🚪 退出并清除</button>
+    </div>
+</aside>
+
+<!-- ══ 主内容 ══ -->
+<main class="main">
+
+    <!-- 站点信息 -->
+    <div class="panel" id="sec-site">
+        <div class="panel-title"><span>🌐</span> 站点信息</div>
+        <div class="fields">
+            <div class="field f-half"><label>标题</label><input type="text" id="site.title" placeholder="Pyx"></div>
+            <div class="field f-half"><label>关键词</label><input type="text" id="site.keywords" placeholder="Pyx"></div>
+            <div class="field f-full"><label>描述</label><textarea id="site.description" rows="2" placeholder="网站描述..."></textarea></div>
+            <div class="field" style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                <label>Favicon 预览</label>
+                <img id="favicon-preview" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:rgba(255,255,255,0.08);padding:4px;">
+            </div>
+            <div class="field" style="flex:1;min-width:0;">
+                <label>Favicon</label>
+                <div class="input-with-upload">
+                    <input type="text" id="site.favicon" placeholder="/static/uploads/xxx.ico 或外链">
+                    <button type="button" class="btn btn-secondary btn-compact" id="btn-upload-favicon" title="上传">📤</button>
+                </div>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px;">上传保存到服务器 <code style="opacity:0.7;">static/uploads/</code>，也可手动填 URL</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 个人资料 -->
+    <div class="panel" id="sec-profile">
+        <div class="panel-title"><span>👤</span> 个人资料</div>
+        <div class="fields">
+            <!-- 头像 + 路径输入框：左头像右输入框 -->
+            <div style="width:100%;display:flex;flex-direction:row;align-items:flex-start;gap:16px;">
+                <div style="position:relative;width:100px;height:100px;flex-shrink:0;margin-top:18px;">
+                    <img id="avatar-preview" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="width:100px;height:100px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,0.08);">
+                    <img id="avatar-frame-preview" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="position:absolute;top:-10%;left:-10%;width:120%;height:120%;object-fit:contain;pointer-events:none;">
+                </div>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:10px;">
+                    <div style="display:flex;flex-direction:column;gap:3px;">
+                        <label style="font-size:0.82rem;color:var(--muted);">头像</label>
+                        <div class="input-with-upload">
+                            <input type="text" id="profile.avatar" placeholder="/static/uploads/...">
+                            <button type="button" class="btn btn-secondary btn-compact" id="btn-upload-avatar" title="上传">📤</button>
+                        </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:3px;">
+                        <label style="font-size:0.82rem;color:var(--muted);">头像边框</label>
+                        <div class="input-with-upload">
+                            <input type="text" id="profile.avatarFrame" placeholder="/static/uploads/...">
+                            <button type="button" class="btn btn-secondary btn-compact" id="btn-upload-avatar-frame" title="上传">📤</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 基本信息 -->
+            <div class="field f-third"><label>名字</label><input type="text" id="profile.name" placeholder="Pyx"></div>
+            <div class="field f-third"><label>所在地</label><input type="text" id="profile.location" placeholder="China-Huhan"></div>
+            <div class="field f-third"><label>学校</label><input type="text" id="profile.school" placeholder="Sias"></div>
+            <div class="field f-half"><label>角色</label><input type="text" id="profile.role" placeholder="Full Stack"></div>
+            <div class="field f-half"><label>角色后缀</label><input type="text" id="profile.roleLabel" placeholder="Developer"></div>
+            <div class="field f-full"><label>口号</label><textarea id="profile.slogan" rows="2" placeholder="The only way to do great is to love what you do."></textarea></div>
+        </div>
+    </div>
+
+    <!-- 标签 -->
+    <div class="panel" id="sec-tags">
+        <div class="panel-title"><span>🏷️</span> 标签</div>
+        <div class="fields">
+            <div class="field f-full"><label>每行一个，或逗号分隔</label><textarea id="tags" rows="2" placeholder="网瘾, 大学生, 前端, linux"></textarea></div>
+        </div>
+    </div>
+
+    <!-- 时间线 -->
+    <div class="panel" id="sec-timeline">
+        <div class="panel-title"><span>📅</span> 时间线</div>
+        <div id="timeline-list"></div>
+        <button class="btn btn-ghost" id="add-timeline">＋ 添加一条</button>
+    </div>
+
+    <!-- 站点列表 -->
+    <div class="panel" id="sec-sites">
+        <div class="panel-title"><span>🔗</span> 站点列表 (site)</div>
+        <p class="panel-hint">图标在库中为 <code style="opacity:0.75;">i1、i2…</code> 编号；下拉可选，右侧为缩略图。📤 上传会保存为下一个编号（如 i7）。</p>
+        <div id="sites-list"></div>
+        <button class="btn btn-ghost" id="add-site">＋ 添加站点</button>
+    </div>
+
+    <!-- 项目列表 -->
+    <div class="panel" id="sec-projects">
+        <div class="panel-title"><span>📦</span> 项目列表 (project)</div>
+        <p class="panel-hint">与站点列表共用同一图标库。</p>
+        <div id="projects-list"></div>
+        <button class="btn btn-ghost" id="add-project">＋ 添加项目</button>
+    </div>
+
+    <!-- 链接图片 -->
+    <div class="panel" id="sec-links">
+        <div class="panel-title"><span>💬</span> 链接与图片</div>
+        <div class="fields">
+            <div class="field f-half"><label>GitHub</label><input type="url" id="links.github" placeholder="https://github.com/..."></div>
+            <div class="field f-half"><label>邮箱</label><input type="text" id="links.mail" placeholder="mailto:i@example.com"></div>
+            <div class="field f-half">
+                <label>赞助二维码</label>
+                <div class="input-with-upload">
+                    <input type="text" id="links.sponsorImg" placeholder="/static/uploads/...">
+                    <button type="button" class="btn btn-secondary btn-compact" id="btn-upload-sponsor" title="上传">📤</button>
+                </div>
+            </div>
+            <div class="field f-half">
+                <label>QQ 二维码</label>
+                <div class="input-with-upload">
+                    <input type="text" id="links.qqImg" placeholder="/static/uploads/...">
+                    <button type="button" class="btn btn-secondary btn-compact" id="btn-upload-qq" title="上传">📤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="panel" id="sec-footer">
+        <div class="panel-title"><span>📄</span> 页脚</div>
+        <div class="fields">
+            <div class="field f-third"><label>文字</label><input type="text" id="footer.text" placeholder="Zyyo © 2024"></div>
+            <div class="field f-third"><label>备案链接</label><input type="url" id="footer.beianUrl" placeholder="https://beian.miit.gov.cn/"></div>
+            <div class="field f-third"><label>备案号</label><input type="text" id="footer.beianNo" placeholder="豫ICP备..."></div>
+        </div>
+    </div>
+
+</main>
+
+</div><!-- #editor-body -->
+
+<div id="toast"></div>
+
+<div id="confirm-modal">
+    <div class="confirm-card">
+        <div class="confirm-icon">🚪</div>
+        <div class="confirm-title">确认退出？</div>
+        <div class="confirm-desc">将清除本地所有缓存数据<br>并返回首页</div>
+        <div class="confirm-btns">
+            <button class="confirm-cancel" id="confirm-cancel">取消</button>
+            <button class="confirm-ok" id="confirm-ok">确认退出</button>
+        </div>
+    </div>
+</div>
+
+<div id="pwd-modal">
+    <div class="confirm-card pwd-card">
+        <div class="confirm-icon">🔑</div>
+        <div class="confirm-title">修改密码</div>
+        <div class="confirm-desc">将更新编辑器登录密码，请牢记新密码</div>
+        <div class="pwd-field-wrap">
+            <label class="pwd-field-label" for="pwd-new">新密码</label>
+            <input type="password" class="pwd-input" id="pwd-new" placeholder="输入新密码" maxlength="64" autocomplete="new-password">
+        </div>
+        <div class="pwd-field-wrap">
+            <label class="pwd-field-label" for="pwd-new2">确认新密码</label>
+            <input type="password" class="pwd-input" id="pwd-new2" placeholder="再次输入以确认" maxlength="64" autocomplete="new-password">
+        </div>
+        <div id="pwd-modal-error"></div>
+        <div class="confirm-btns">
+            <button type="button" class="confirm-cancel" id="pwd-cancel">取消</button>
+            <button type="button" class="confirm-ok pwd-submit" id="pwd-submit">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function applySlotsToForm(slots) {
+    if (!slots) return;
+    var pairs = [
+        ['avatar', 'profile.avatar'],
+        ['avatar_frame', 'profile.avatarFrame'],
+        ['favicon', 'site.favicon'],
+        ['sponsor', 'links.sponsorImg'],
+        ['qq', 'links.qqImg']
+    ];
+    pairs.forEach(function(pair) {
+        var p = slots[pair[0]];
+        if (p) {
+            var el = document.getElementById(pair[1]);
+            if (el) el.value = p;
+        }
+    });
+}
+
+function loadMediaList(done) {
+    var pwd = sessionStorage.getItem('myweb_editor_pwd');
+    if (!pwd) {
+        window.MEDIA_SITE_ICONS = [];
+        if (done) done(null);
+        return;
+    }
+    fetch('./api/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'media_list', pwd: pwd })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        if (res.ok && Array.isArray(res.site_icons)) {
+            window.MEDIA_SITE_ICONS = res.site_icons;
+        } else {
+            window.MEDIA_SITE_ICONS = [];
+        }
+        if (done) done(res);
+    })
+    .catch(function() {
+        window.MEDIA_SITE_ICONS = [];
+        if (done) done(null);
+    });
+}
+
+/* ══ 密码锁逻辑（/api/content 验证，密码存于 SQLite site_settings）══ */
+(function() {
+    var SESSION_KEY = 'myweb_editor_unlocked';
+    var SESSION_PWD = 'myweb_editor_pwd';
+
+    function unlock(pwd) {
+        sessionStorage.setItem(SESSION_KEY, '1');
+        sessionStorage.setItem(SESSION_PWD, pwd);
+        document.getElementById('lock-screen').style.display = 'none';
+        document.getElementById('editor-body').style.display = '';
+        loadMediaList(function(mediaRes) {
+            fetch('./api/content', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'get'}) })
+                .then(function(r){ return r.json(); })
+                .then(function(data) {
+                    fillData(data);
+                    applySlotsToForm(mediaRes && mediaRes.slots);
+                    syncPreviews();
+                })
+                .catch(function(){ fillData({}); syncPreviews(); });
+        });
+    }
+
+    // 本次会话已解锁则直接进入（不重新调 unlock 避免覆盖密码）
+    if (sessionStorage.getItem(SESSION_KEY) === '1') {
+        document.getElementById('lock-screen').style.display = 'none';
+        document.getElementById('editor-body').style.display = '';
+        return;
+    }
+
+    function tryUnlock() {
+        var val = document.getElementById('lock-input').value;
+        if (!val) return;
+        var btn = document.getElementById('lock-btn');
+        var err = document.getElementById('lock-error');
+        btn.textContent = '验证中...';
+        btn.disabled = true;
+        fetch('./api/content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pwd: val, check: true })
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(res) {
+            btn.textContent = '进入编辑器';
+            btn.disabled = false;
+            if (res.ok) {
+                unlock(val);
+            } else {
+                err.textContent = '密码错误，请重试';
+                document.getElementById('lock-input').value = '';
+                document.getElementById('lock-input').focus();
+                setTimeout(function(){ err.textContent = ''; }, 2000);
+            }
+        })
+        .catch(function() {
+            btn.textContent = '进入编辑器';
+            btn.disabled = false;
+            err.textContent = '无法连接服务器';
+            setTimeout(function(){ err.textContent = ''; }, 2000);
+        });
+    }
+
+    document.getElementById('lock-btn').addEventListener('click', tryUnlock);
+    document.getElementById('lock-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') tryUnlock();
+    });
+})();
+
+/* ── toast ── */
+function toast(msg) {
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+    setTimeout(function(){ el.classList.remove('show'); }, 2200);
+}
+
+var EMPTY_IMG = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+function syncPreviews() {
+    var fav = document.getElementById('site.favicon');
+    var fp = document.getElementById('favicon-preview');
+    if (fav && fp) fp.src = (fav.value && fav.value.trim()) ? fav.value.trim() : EMPTY_IMG;
+    var av = document.getElementById('profile.avatar');
+    var ap = document.getElementById('avatar-preview');
+    if (av && ap) ap.src = (av.value && av.value.trim()) ? av.value.trim() : EMPTY_IMG;
+    var fr = document.getElementById('profile.avatarFrame');
+    var af = document.getElementById('avatar-frame-preview');
+    if (fr && af) af.src = (fr.value && fr.value.trim()) ? fr.value.trim() : EMPTY_IMG;
+}
+
+function mediaEntryPath(entry) {
+    if (!entry) return '';
+    return typeof entry === 'string' ? entry : (entry.path || '');
+}
+function mediaEntryLabel(entry) {
+    if (!entry) return '';
+    if (typeof entry === 'string') return entry.split('/').pop() || entry;
+    return entry.label || (entry.path && entry.path.split('/').pop()) || '';
+}
+function listContainsPath(list, path) {
+    if (!path || !list) return false;
+    for (var i = 0; i < list.length; i++) {
+        if (mediaEntryPath(list[i]) === path) return true;
+    }
+    return false;
+}
+function syncCardImgThumb(sel) {
+    var wrap = sel && sel.closest ? sel.closest('.card-img-wrap') : null;
+    if (!wrap) return;
+    var img = wrap.querySelector('.card-img-thumb');
+    if (!img) return;
+    var v = sel.value;
+    img.src = v || EMPTY_IMG;
+}
+
+function addSiteIconOption(url, label) {
+    if (!url) return;
+    if (!window.MEDIA_SITE_ICONS) window.MEDIA_SITE_ICONS = [];
+    var lab = label || url.split('/').pop();
+    var entry = { label: lab, path: url };
+    if (!listContainsPath(window.MEDIA_SITE_ICONS, url)) {
+        window.MEDIA_SITE_ICONS.push(entry);
+    }
+    document.querySelectorAll('select[data-t="img"]').forEach(function(sel) {
+        var exists = false;
+        for (var i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === url) { exists = true; break; }
+        }
+        if (!exists) {
+            var o = document.createElement('option');
+            o.value = url;
+            o.textContent = lab;
+            sel.appendChild(o);
+        }
+    });
+}
+
+function uploadImageFile(file, inputEl, previewEl, kind) {
+    var pwd = sessionStorage.getItem('myweb_editor_pwd') || '';
+    if (!pwd) {
+        toast('❌ 请先解锁编辑器');
+        return;
+    }
+    var fd = new FormData();
+    fd.append('file', file);
+    fd.append('pwd', pwd);
+    fd.append('kind', kind || 'site_icon');
+    fetch('./api/upload', { method: 'POST', body: fd })
+        .then(function(r){ return r.json(); })
+        .then(function(res) {
+            if (res.ok) {
+                if (inputEl && inputEl.tagName === 'SELECT') {
+                    addSiteIconOption(res.url, res.label);
+                    inputEl.value = res.url;
+                    syncCardImgThumb(inputEl);
+                } else if (inputEl) {
+                    inputEl.value = res.url;
+                    try { inputEl.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+                }
+                if (previewEl) previewEl.src = res.url;
+                syncPreviews();
+                if (kind === 'site_icon') {
+                    toast(res.label ? ('✅ 已保存为 ' + res.label) : '✅ 已加入站点图标库');
+                } else {
+                    toast('✅ 上传成功（已覆盖旧文件）');
+                }
+            } else {
+                toast('❌ ' + (res.msg || '上传失败'));
+            }
+        })
+        .catch(function() { toast('❌ 网络错误'); });
+}
+
+function bindUploadBtn(btnId, inputId, previewId, kind) {
+    document.getElementById(btnId).addEventListener('click', function() {
+        var inp = document.getElementById(inputId);
+        var prev = previewId ? document.getElementById(previewId) : null;
+        var i = document.createElement('input');
+        i.type = 'file';
+        i.accept = 'image/*,.ico';
+        i.onchange = function() {
+            if (i.files && i.files[0]) uploadImageFile(i.files[0], inp, prev, kind);
+        };
+        i.click();
+    });
+}
+
+bindUploadBtn('btn-upload-favicon', 'site.favicon', 'favicon-preview', 'favicon');
+bindUploadBtn('btn-upload-avatar', 'profile.avatar', 'avatar-preview', 'avatar');
+bindUploadBtn('btn-upload-avatar-frame', 'profile.avatarFrame', 'avatar-frame-preview', 'avatar_frame');
+bindUploadBtn('btn-upload-sponsor', 'links.sponsorImg', null, 'sponsor');
+bindUploadBtn('btn-upload-qq', 'links.qqImg', null, 'qq');
+
+document.getElementById('site.favicon').addEventListener('input', syncPreviews);
+document.getElementById('profile.avatar').addEventListener('input', syncPreviews);
+document.getElementById('profile.avatarFrame').addEventListener('input', syncPreviews);
+
+/* ── 导航高亮随滚动 ── */
+(function() {
+    var ids = ['sec-site','sec-profile','sec-tags','sec-timeline','sec-sites','sec-projects','sec-links','sec-footer'];
+    var links = document.querySelectorAll('.nav-item');
+    function onScroll() {
+        var cur = ids[0];
+        ids.forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el && el.getBoundingClientRect().top <= 80) cur = id;
+        });
+        links.forEach(function(a) {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + cur);
+        });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+})();
+
+/* ── 读写扁平字段 ── */
+var FLAT_KEYS = [
+    'site.title','site.description','site.keywords','site.favicon',
+    'profile.name','profile.location','profile.school','profile.role','profile.roleLabel','profile.slogan','profile.avatar','profile.avatarFrame',
+    'links.github','links.mail','links.sponsorImg','links.qqImg',
+    'footer.text','footer.beianUrl','footer.beianNo'
+];
+
+function buildData() {
+    var o = {
+        site:     { title:'', description:'', keywords:'' },
+        profile:  { name:'', location:'', school:'', role:'', roleLabel:'', slogan:'' },
+        tags:     [],
+        timeline: [], sites: [], projects: [],
+        links:    { github:'', mail:'', sponsorImg:'', qqImg:'' },
+        footer:   { text:'', beianUrl:'', beianNo:'' }
+    };
+    FLAT_KEYS.forEach(function(key) {
+        var el = document.getElementById(key);
+        if (!el) return;
+        var parts = key.split('.');
+        o[parts[0]][parts[1]] = el.value;
+    });
+    var tv = document.getElementById('tags').value.trim();
+    o.tags = tv ? tv.split(/[\n,，]+/).map(function(s){ return s.trim(); }).filter(Boolean) : [];
+    o.timeline = collectList('timeline-list', ['text','date']);
+    o.sites     = collectList('sites-list',    ['title','desc','url','img']);
+    o.projects  = collectList('projects-list', ['title','desc','url','img']);
+    return o;
+}
+
+function collectList(id, keys) {
+    var items = [];
+    document.querySelectorAll('#' + id + ' .list-row').forEach(function(row) {
+        var item = {};
+        var ok = false;
+        keys.forEach(function(k) {
+            var el = row.querySelector('[data-t="' + k + '"]');
+            if (!el) {
+                item[k] = '';
+                return;
+            }
+            item[k] = el.value != null ? String(el.value).trim() : '';
+            if (item[k]) ok = true;
+        });
+        if (ok) items.push(item);
+    });
+    return items;
+}
+
+function fillData(data) {
+    if (!data) return;
+    FLAT_KEYS.forEach(function(key) {
+        var el = document.getElementById(key);
+        if (!el) return;
+        var parts = key.split('.');
+        el.value = (data[parts[0]] && data[parts[0]][parts[1]]) || '';
+    });
+    var tags = document.getElementById('tags');
+    if (tags) tags.value = Array.isArray(data.tags) ? data.tags.join(', ') : '';
+
+    renderTimeline(data.timeline || []);
+    renderSites(data.sites || []);
+    renderProjects(data.projects || []);
+    syncPreviews();
+}
+
+/* ── 列表渲染 ── */
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
+function renderTimeline(list) {
+    var el = document.getElementById('timeline-list');
+    el.innerHTML = '';
+    list.forEach(function(item) {
+        el.appendChild(makeTimelineRow(item.text, item.date));
+    });
+}
+function makeTimelineRow(text, date) {
+    var d = document.createElement('div');
+    d.className = 'list-row';
+    d.innerHTML = '<input type="text" data-t="text" placeholder="事件描述" value="' + esc(text) + '">'
+                + '<input type="text" data-t="date" class="date-input" placeholder="2024.12" value="' + esc(date) + '">'
+                + '<button type="button" class="btn btn-del rm-row">删除</button>';
+    return d;
+}
+
+function renderSites(list) { renderCardList('sites-list', list, 'rm-site'); }
+function renderProjects(list) { renderCardList('projects-list', list, 'rm-project'); }
+function renderCardList(id, list, rmCls) {
+    var el = document.getElementById(id);
+    el.innerHTML = '';
+    list.forEach(function(item) {
+        el.appendChild(makeCardRow(item, rmCls));
+    });
+}
+function buildCardImgSelect(selectedUrl) {
+    var urls = window.MEDIA_SITE_ICONS || [];
+    var opts = '<option value="">选择站点图标…</option>';
+    urls.forEach(function(entry) {
+        var path = mediaEntryPath(entry);
+        var lab = mediaEntryLabel(entry);
+        opts += '<option value="' + esc(path) + '"' + (path === selectedUrl ? ' selected' : '') + '>' + esc(lab) + '</option>';
+    });
+    if (selectedUrl && !listContainsPath(urls, selectedUrl)) {
+        opts += '<option value="' + esc(selectedUrl) + '" selected>' + esc(selectedUrl.split('/').pop()) + '</option>';
+    }
+    var thumbSrc = selectedUrl ? esc(selectedUrl) : esc(EMPTY_IMG);
+    return '<div class="card-img-wrap">'
+        + '<select data-t="img" class="card-img-select">' + opts + '</select>'
+        + '<img class="card-img-thumb" alt="" src="' + thumbSrc + '">'
+        + '</div>';
+}
+
+function makeCardRow(item, rmCls) {
+    var d = document.createElement('div');
+    d.className = 'list-row';
+    d.innerHTML = '<input type="text"  data-t="title" placeholder="标题"  value="' + esc(item.title||'') + '">'
+                + '<input type="text"  data-t="desc"  placeholder="描述"  value="' + esc(item.desc||'') + '">'
+                + '<input type="url"   data-t="url"   placeholder="链接"  value="' + esc(item.url||'') + '">'
+                + buildCardImgSelect(item.img || '')
+                + '<button type="button" class="btn-upload-cell" title="上传新图标（保存为 iN）">📤</button>'
+                + '<button type="button" class="btn btn-del rm-row ' + rmCls + '">删除</button>';
+    return d;
+}
+
+document.getElementById('add-timeline').addEventListener('click', function() {
+    var list = document.getElementById('timeline-list');
+    list.appendChild(makeTimelineRow('',''));
+});
+document.getElementById('add-site').addEventListener('click', function() {
+    document.getElementById('sites-list').appendChild(makeCardRow({}, 'rm-site'));
+});
+document.getElementById('add-project').addEventListener('click', function() {
+    document.getElementById('projects-list').appendChild(makeCardRow({}, 'rm-project'));
+});
+['timeline-list','sites-list','projects-list'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target.classList.contains('rm-row')) e.target.closest('.list-row').remove();
+        if (e.target.classList.contains('btn-upload-cell')) {
+            var row = e.target.closest('.list-row');
+            var inp = row.querySelector('[data-t="img"]');
+            if (!inp) return;
+            var fi = document.createElement('input');
+            fi.type = 'file';
+            fi.accept = 'image/*';
+            fi.onchange = function() {
+                if (fi.files && fi.files[0]) uploadImageFile(fi.files[0], inp, null, 'site_icon');
+            };
+            fi.click();
+        }
+    });
+});
+['sites-list','projects-list'].forEach(function(id) {
+    document.getElementById(id).addEventListener('change', function(e) {
+        if (e.target.matches && e.target.matches('select[data-t="img"]')) {
+            syncCardImgThumb(e.target);
+        }
+    });
+});
+
+/* ── 保存 ── */
+document.getElementById('save-local').addEventListener('click', function() {
+    var data = buildData();
+    var pwd  = sessionStorage.getItem('myweb_editor_pwd') || '';
+    this.textContent = '保存中...';
+    var btn = this;
+    fetch('./api/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pwd: pwd, data: data })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res) {
+        btn.textContent = '💾 保存到服务器';
+        if (res.ok) {
+            toast('✅ 已保存，刷新首页即生效');
+        } else {
+            toast('❌ ' + (res.msg || '保存失败'));
+        }
+    })
+    .catch(function() {
+        btn.textContent = '💾 保存到服务器';
+        toast('❌ 网络错误，请检查后端是否在运行');
+    });
+});
+
+(function pwdModal() {
+    var modal = document.getElementById('pwd-modal');
+    var inp1 = document.getElementById('pwd-new');
+    var inp2 = document.getElementById('pwd-new2');
+    var errEl = document.getElementById('pwd-modal-error');
+    var btnSubmit = document.getElementById('pwd-submit');
+
+    function openPwdModal() {
+        var cur = sessionStorage.getItem('myweb_editor_pwd') || '';
+        if (!cur) {
+            toast('❌ 请先通过锁屏验证密码');
+            return;
+        }
+        errEl.textContent = '';
+        inp1.value = '';
+        inp2.value = '';
+        modal.classList.add('show');
+        setTimeout(function() { inp1.focus(); }, 80);
+    }
+
+    function closePwdModal() {
+        modal.classList.remove('show');
+        errEl.textContent = '';
+    }
+
+    document.getElementById('change-pwd').addEventListener('click', openPwdModal);
+    document.getElementById('pwd-cancel').addEventListener('click', closePwdModal);
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) closePwdModal();
+    });
+
+    function doSubmit() {
+        var cur = sessionStorage.getItem('myweb_editor_pwd') || '';
+        if (!cur) {
+            toast('❌ 请先通过锁屏验证密码');
+            closePwdModal();
+            return;
+        }
+        var np = inp1.value.trim();
+        var np2 = inp2.value.trim();
+        errEl.textContent = '';
+        if (!np) {
+            errEl.textContent = '请输入新密码';
+            inp1.focus();
+            return;
+        }
+        if (np !== np2) {
+            errEl.textContent = '两次输入不一致';
+            inp2.focus();
+            return;
+        }
+        var label = btnSubmit.textContent;
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = '保存中…';
+        fetch('./api/content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'set_password', pwd: cur, new_pwd: np })
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(res) {
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = label;
+            if (res.ok) {
+                sessionStorage.setItem('myweb_editor_pwd', np);
+                closePwdModal();
+                toast('✅ 密码已更新');
+            } else {
+                errEl.textContent = res.msg || '修改失败';
+            }
+        })
+        .catch(function() {
+            btnSubmit.disabled = false;
+            btnSubmit.textContent = label;
+            errEl.textContent = '网络错误，请重试';
+        });
+    }
+
+    document.getElementById('pwd-submit').addEventListener('click', doSubmit);
+    inp2.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') doSubmit();
+    });
+    inp1.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') inp2.focus();
+    });
+})();
+
+document.getElementById('logout').addEventListener('click', function() {
+    document.getElementById('confirm-modal').classList.add('show');
+});
+document.getElementById('confirm-cancel').addEventListener('click', function() {
+    document.getElementById('confirm-modal').classList.remove('show');
+});
+document.getElementById('confirm-ok').addEventListener('click', function() {
+    try { localStorage.removeItem('myweb_content'); } catch(e) {}
+    sessionStorage.clear();
+    location.href = '/';
+});
+document.getElementById('confirm-modal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+});
+
+/* ── 初始加载（先拉媒体库再填表，站点/项目图标下拉才有选项）── */
+(function() {
+    fetch('./api/content', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'get'}) })
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+            var pwd = sessionStorage.getItem('myweb_editor_pwd');
+            if (pwd) {
+                loadMediaList(function(mediaRes) {
+                    fillData(data);
+                    applySlotsToForm(mediaRes && mediaRes.slots);
+                    syncPreviews();
+                });
+            } else {
+                fillData(data);
+                syncPreviews();
+            }
+        })
+        .catch(function(){
+            fillData({});
+            syncPreviews();
+        });
+})();
+</script>
+</body>
+</html>

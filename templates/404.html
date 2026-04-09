@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>404 - 页面不见了</title>
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" id="favicon">
+    <script>
+        fetch('./api/content', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'get'}) })
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                if (data && data.site && data.site.favicon)
+                    document.getElementById('favicon').href = data.site.favicon;
+            })
+            .catch(function(){});
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/root.css') }}">
+    <style>
+        .page-404 {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .num-404 {
+            font-family: "title";
+            font-size: clamp(100px, 22vw, 200px);
+            line-height: 1;
+            background-image: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200%;
+            animation: backgroundSizeAnimation 10s ease-in-out infinite;
+            user-select: none;
+        }
+
+        .card-404 {
+            backdrop-filter: blur(var(--card_filter));
+            -webkit-backdrop-filter: blur(var(--card_filter));
+            background: var(--item_bg_color);
+            border-radius: 18px;
+            padding: 32px 48px;
+            max-width: 480px;
+            width: 100%;
+            margin-top: -10px;
+        }
+
+        .title-404 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            color: var(--main_text_color);
+        }
+
+        .desc-404 {
+            font-size: 1rem;
+            color: var(--item_left_text_color);
+            margin-bottom: 28px;
+            line-height: 1.7;
+        }
+
+        .desc-404 .hl {
+            color: var(--purple_text_color);
+            font-weight: 800;
+        }
+
+        .btn-404 {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            border-radius: 10px;
+            background: var(--item_bg_color);
+            color: var(--main_text_color);
+            font-size: 0.95rem;
+            font-family: "b", sans-serif;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            backdrop-filter: blur(var(--card_filter));
+            -webkit-backdrop-filter: blur(var(--card_filter));
+        }
+        .btn-404:hover {
+            transform: translateY(-3px);
+            background: var(--item_hover_color);
+        }
+        .btn-404:active { transform: scale(0.97); }
+
+        .ghost {
+            font-size: clamp(50px, 10vw, 80px);
+            animation: float 3s ease-in-out infinite;
+            display: block;
+            margin-bottom: 10px;
+            user-select: none;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-14px); }
+        }
+
+        footer {
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div id="zyyo-loading">
+        <div id="zyyo-loading-center"></div>
+    </div>
+    <div class="zyyo-filter"></div>
+
+    <div class="page-404">
+        <span class="ghost">👻</span>
+        <div class="num-404">404</div>
+
+        <div class="card-404">
+            <div class="title-404">页面不见了</div>
+            <p class="desc-404">
+                你访问的页面<span class="hl">迷路了</span>，<br>
+                也许它从未存在，也许已悄悄消失。
+            </p>
+            <a class="btn-404" href="{{ url_for('pages.index') }}">
+                <svg viewBox="0 0 1024 1024" width="18" height="18" fill="currentColor">
+                    <path d="M946.5 505L534.6 93.4a31.93 31.93 0 0 0-45.2 0L77.5 505c-12 12-18.8 28.3-18.8 45.3 0 35.3 28.7 64 64 64h43.4V908c0 17.7 14.3 32 32 32H448V716h112v224h265.9c17.7 0 32-14.3 32-32V614.3h43.4c17 0 33.3-6.7 45.3-18.8 24.9-25 24.9-65.5-.1-90.5z"/>
+                </svg>
+                回到首页
+            </a>
+        </div>
+    </div>
+
+    <footer id="footer-404"></footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        var pageLoading = document.querySelector('#zyyo-loading');
+        window.addEventListener('load', function () {
+            setTimeout(function () { pageLoading.style.opacity = '0'; }, 100);
+        });
+
+        (function loadFooter() {
+            fetch('./api/content', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'get'}) })
+                .then(function(r){ return r.json(); })
+                .then(function(data) {
+                    if (!data || !data.footer) return;
+                    var el = document.getElementById('footer-404');
+                    if (el) el.innerHTML = data.footer.text + ' | <a href="' + data.footer.beianUrl + '">' + data.footer.beianNo + '</a>';
+                })
+                .catch(function(){});
+        })();
+    </script>
+</body>
+</html>
