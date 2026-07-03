@@ -18,13 +18,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/root.css') }}">
     <style>
         .page-404 {
-            min-height: 100vh;
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 40px 20px;
+            padding: 40px 20px 20px;
             position: relative;
             z-index: 1;
         }
@@ -107,17 +107,13 @@
             0%, 100% { transform: translateY(0); }
             50%       { transform: translateY(-14px); }
         }
-
-        footer {
-            margin-top: 40px;
-        }
     </style>
 </head>
 <body>
-    <div id="zyyo-loading">
-        <div id="zyyo-loading-center"></div>
+    <div id="page-loading">
+        <div id="page-loading-center"></div>
     </div>
-    <div class="zyyo-filter"></div>
+    <div class="page-filter"></div>
 
     <div class="page-404">
         <span class="ghost">👻</span>
@@ -142,7 +138,7 @@
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     <script>
-        var pageLoading = document.querySelector('#zyyo-loading');
+        var pageLoading = document.querySelector('#page-loading');
         window.addEventListener('load', function () {
             setTimeout(function () { pageLoading.style.opacity = '0'; }, 100);
         });
@@ -151,9 +147,7 @@
             fetch('./api/content', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'get'}) })
                 .then(function(r){ return r.json(); })
                 .then(function(data) {
-                    if (!data || !data.footer) return;
-                    var el = document.getElementById('footer-404');
-                    if (el) el.innerHTML = data.footer.text + ' | <a href="' + data.footer.beianUrl + '">' + data.footer.beianNo + '</a>';
+                    renderFooter(document.getElementById('footer-404'), data && data.footer);
                 })
                 .catch(function(){});
         })();

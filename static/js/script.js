@@ -1,4 +1,23 @@
 // 从 Python 后端 /api/content 获取最新内容并渲染
+function renderFooter(el, footer) {
+    if (!el || !footer) return;
+    var parts = [];
+    var text = (footer.text || '').trim();
+    var beianNo = (footer.beianNo || '').trim();
+    var beianUrl = (footer.beianUrl || '').trim();
+    if (text) parts.push(text);
+    if (beianNo) {
+        parts.push('<a href="' + (beianUrl || '#') + '">' + beianNo + '</a>');
+    }
+    if (parts.length) {
+        el.style.display = '';
+        el.innerHTML = parts.join(' | ');
+    } else {
+        el.innerHTML = '';
+        el.style.display = 'none';
+    }
+}
+
 function renderContent(data) {
     if (!data) return;
     document.title = data.site.title;
@@ -53,9 +72,9 @@ function renderContent(data) {
         }).join('');
     }
 
-    var gh = document.querySelector('.iconContainer a[href*="github"]');
+    var gh = document.querySelector('.iconItem[data-link="github"]');
     if (gh && data.links.github) gh.href = data.links.github;
-    var mail = document.querySelector('.iconContainer a[href^="mailto"]');
+    var mail = document.querySelector('.iconItem[data-link="mail"]');
     if (mail && data.links.mail) mail.href = data.links.mail;
     var sponsor = document.querySelector('.iconItem[data-link="sponsor"]');
     if (sponsor && data.links.sponsorImg) sponsor.dataset.img = data.links.sponsorImg;
@@ -63,9 +82,7 @@ function renderContent(data) {
     if (qq && data.links.qqImg) qq.dataset.img = data.links.qqImg;
 
     var footer = document.querySelector('footer');
-    if (footer && data.footer) {
-        footer.innerHTML = data.footer.text + ' | <a href="' + data.footer.beianUrl + '">' + data.footer.beianNo + '</a>';
-    }
+    if (footer) renderFooter(footer, data.footer);
 }
 
 document.addEventListener('contextmenu', function (event) {
@@ -293,7 +310,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-var pageLoading = document.querySelector("#zyyo-loading");
+var pageLoading = document.querySelector("#page-loading");
 window.addEventListener('load', function() {
     setTimeout(function () {
         pageLoading.style.opacity = '0';

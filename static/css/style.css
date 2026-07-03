@@ -86,6 +86,8 @@ body {
     min-height: 100vh;
     width: 100%;
     position: relative;
+    display: flex;
+    flex-direction: column;
     font-family: "b",  "a", sans-serif;
     background: var(--main_bg_color);
     background-repeat: no-repeat;
@@ -97,7 +99,7 @@ body {
 
 }
 
-#zyyo-loading {
+#page-loading {
     background: radial-gradient(white, #d8eaff);
     background-size: 100%;
     background-position: center;
@@ -117,7 +119,7 @@ body {
 
 
 
-#zyyo-loading-center {
+#page-loading-center {
     height: 150px;
     width: 150px;
     position: relative;
@@ -146,7 +148,7 @@ body {
 
 
 
-.zyyo-filter {
+.page-filter {
     position: fixed;
     width: 100%;
     height: 100%;
@@ -157,7 +159,7 @@ body {
    
 }
 
-.zyyo-main {
+.page-main {
     width: 100%;
     margin: 0 auto;
     transition: transform 0.5s ease;
@@ -165,10 +167,11 @@ body {
     position: relative;
     display: flex;
     flex-direction: row;
+    flex: 1;
 }
 
 
-.zyyo-left {
+.page-left {
     overflow-y: scroll;
     width: 230px;
     height: 100vh;
@@ -182,7 +185,7 @@ body {
 }
 
 
-.zyyo-left::-webkit-scrollbar {
+.page-left::-webkit-scrollbar {
     display: none;
 }
 
@@ -294,12 +297,11 @@ body {
 
 
 
-.zyyo-right {
+.page-right {
     width: calc(100% - 230px);
     display: flex;
     padding: 20px;
   position: relative;
-    padding-bottom: 50px;
     flex-direction: column;
 }
 .welcome {
@@ -602,16 +604,29 @@ body {
 }
 
 footer {
-    position: absolute;
-    padding: 10px;
+    flex-shrink: 0;
+    width: calc(100% - 40px);
+    max-width: 1150px;
+    margin: 8px auto 16px;
+    padding: 12px 20px;
     text-align: center;
-    width: 100%;
+    border-radius: 13px;
     backdrop-filter: blur(var(--card_filter));
     -webkit-backdrop-filter: blur(var(--card_filter));
     background: var(--item_bg_color);
     color: var(--footer_text_color);
     font-size: 13px;
-    bottom: 0;
+    line-height: 1.6;
+    opacity: 0.92;
+}
+
+footer a {
+    color: inherit;
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
 }
 
 @media (min-width: 800px) {
@@ -637,7 +652,7 @@ footer {
 }
 
 @media (max-width: 800px) {
-    .zyyo-left {
+    .page-left {
         display: none;
     }
 
@@ -670,7 +685,7 @@ footer {
 
 
 
-    .zyyo-right {
+    .page-right {
         width: 100%;
     }
 

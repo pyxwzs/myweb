@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import os
 
-from flask import Flask, Response
+from flask import Flask, Response, jsonify, render_template, request
 
 from database import init_db
 from routes.api import bp as api_bp
@@ -21,6 +21,13 @@ app = Flask(
 
 app.register_blueprint(pages_bp)
 app.register_blueprint(api_bp)
+
+
+@app.errorhandler(404)
+def not_found(_e):  # noqa: ANN001
+    if request.path.startswith("/api/"):
+        return jsonify(ok=False, msg="Not Found"), 404
+    return render_template("404.html"), 404
 
 
 def apply_no_cache(response: Response) -> Response:
