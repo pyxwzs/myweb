@@ -263,6 +263,20 @@
         }
         .list-row input { flex: 1; min-width: 0; }
         .list-row .date-input { flex: 0 0 80px; }
+        .list-row.site-row { flex-wrap: wrap; }
+        .list-row.site-row input[data-t="qrcode"] { flex: 1 1 160px; min-width: 120px; }
+        .btn-upload-qrcode-cell {
+            flex: 0 0 auto;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: rgba(65, 209, 255, 0.12);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+        }
+        .btn-upload-qrcode-cell:hover { background: rgba(65, 209, 255, 0.28); }
 
         /* ══ 按钮 ══ */
         .btn {
@@ -614,7 +628,7 @@
     <!-- 站点列表 -->
     <div class="panel" id="sec-sites">
         <div class="panel-title"><span>🔗</span> 站点列表 (site)</div>
-        <p class="panel-hint">图标在库中为 <code style="opacity:0.75;">i1、i2…</code> 编号；下拉可选，右侧为缩略图。📤 上传会保存为下一个编号（如 i7）。</p>
+        <p class="panel-hint">图标在库中为 <code style="opacity:0.75;">i1、i2…</code> 编号；下拉可选，右侧为缩略图。📤 上传会保存为下一个编号（如 i7）。📱 可上传小程序码，首页卡片右上角点击弹出二维码。</p>
         <div id="sites-list"></div>
         <button class="btn btn-ghost" id="add-site">＋ 添加站点</button>
     </div>
@@ -987,7 +1001,7 @@ function buildData() {
     var tv = document.getElementById('tags').value.trim();
     o.tags = tv ? tv.split(/[\n,，]+/).map(function(s){ return s.trim(); }).filter(Boolean) : [];
     o.timeline = collectList('timeline-list', ['text','date']);
-    o.sites     = collectList('sites-list',    ['title','desc','url','img']);
+    o.sites     = collectList('sites-list',    ['title','desc','url','img','qrcode']);
     o.projects  = collectList('projects-list', ['title','desc','url','img']);
     return o;
 }
@@ -1047,7 +1061,13 @@ function makeTimelineRow(text, date) {
     return d;
 }
 
-function renderSites(list) { renderCardList('sites-list', list, 'rm-site'); }
+function renderSites(list) {
+    var el = document.getElementById('sites-list');
+    el.innerHTML = '';
+    list.forEach(function(item) {
+        el.appendChild(makeSiteCardRow(item));
+    });
+}
 function renderProjects(list) { renderCardList('projects-list', list, 'rm-project'); }
 function renderCardList(id, list, rmCls) {
     var el = document.getElementById(id);
@@ -1074,6 +1094,20 @@ function buildCardImgSelect(selectedUrl) {
         + '</div>';
 }
 
+function makeSiteCardRow(item) {
+    var d = document.createElement('div');
+    d.className = 'list-row site-row';
+    d.innerHTML = '<input type="text"  data-t="title" placeholder="标题"  value="' + esc(item.title||'') + '">'
+                + '<input type="text"  data-t="desc"  placeholder="描述"  value="' + esc(item.desc||'') + '">'
+                + '<input type="url"   data-t="url"   placeholder="链接（可选）"  value="' + esc(item.url||'') + '">'
+                + buildCardImgSelect(item.img || '')
+                + '<button type="button" class="btn-upload-cell" title="上传新图标（保存为 iN）">📤</button>'
+                + '<input type="text" data-t="qrcode" placeholder="小程序码图片 URL（可选）" value="' + esc(item.qrcode||'') + '">'
+                + '<button type="button" class="btn-upload-qrcode-cell" title="上传小程序码">📱</button>'
+                + '<button type="button" class="btn btn-del rm-row rm-site">删除</button>';
+    return d;
+}
+
 function makeCardRow(item, rmCls) {
     var d = document.createElement('div');
     d.className = 'list-row';
@@ -1091,7 +1125,7 @@ document.getElementById('add-timeline').addEventListener('click', function() {
     list.appendChild(makeTimelineRow('',''));
 });
 document.getElementById('add-site').addEventListener('click', function() {
-    document.getElementById('sites-list').appendChild(makeCardRow({}, 'rm-site'));
+    document.getElementById('sites-list').appendChild(makeSiteCardRow({}));
 });
 document.getElementById('add-project').addEventListener('click', function() {
     document.getElementById('projects-list').appendChild(makeCardRow({}, 'rm-project'));
@@ -1110,6 +1144,18 @@ document.getElementById('add-project').addEventListener('click', function() {
                 if (fi.files && fi.files[0]) uploadImageFile(fi.files[0], inp, null, 'site_icon');
             };
             fi.click();
+        }
+        if (e.target.classList.contains('btn-upload-qrcode-cell')) {
+            var rowQ = e.target.closest('.list-row');
+            var inpQ = rowQ && rowQ.querySelector('[data-t="qrcode"]');
+            if (!inpQ) return;
+            var fiQ = document.createElement('input');
+            fiQ.type = 'file';
+            fiQ.accept = 'image/*';
+            fiQ.onchange = function() {
+                if (fiQ.files && fiQ.files[0]) uploadImageFile(fiQ.files[0], inpQ, null, 'site_icon');
+            };
+            fiQ.click();
         }
     });
 });

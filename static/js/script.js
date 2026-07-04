@@ -10,12 +10,52 @@ function renderFooter(el, footer) {
         parts.push('<a href="' + (beianUrl || '#') + '">' + beianNo + '</a>');
     }
     if (parts.length) {
-        el.style.display = '';
         el.innerHTML = parts.join(' | ');
     } else {
         el.innerHTML = '';
-        el.style.display = 'none';
     }
+}
+
+function escHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+}
+
+function buildSiteItemHtml(s) {
+    var qrcode = (s.qrcode || '').trim();
+    var url = (s.url || '').trim();
+    var inner = '<div class="projectItemLeft"><h1>' + escHtml(s.title) + '</h1><p>' + escHtml(s.desc) + '</p></div>'
+        + '<div class="projectItemRight"><img src="' + escHtml(s.img) + '" alt=""></div>';
+    if (qrcode) {
+        inner += '<span class="site-mp-btn" data-qrcode="' + escHtml(qrcode) + '" title="查看小程序码">'
+            + '<svg class="site-mp-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">'
+            + '<path d="M626.176 279.552c74.24 0 134.4 55.808 134.4 124.928 0 69.12-60.16 124.928-134.4 124.928-74.24 0-134.4-55.808-134.4-124.928 0-69.12 60.16-124.928 134.4-124.928zM397.824 279.552c74.24 0 134.4 55.808 134.4 124.928 0 69.12-60.16 124.928-134.4 124.928-74.24 0-134.4-55.808-134.4-124.928 0-69.12 60.16-124.928 134.4-124.928zM512 64C264.576 64 64 238.336 64 456.704c0 168.448 98.816 315.392 243.712 384.512L256 896l156.672-83.968c31.232 8.704 64.512 13.312 99.328 13.312 247.424 0 448-174.336 448-392.704C960 238.336 759.424 64 512 64z"/>'
+            + '</svg></span>';
+    }
+    if (url) {
+        return '<a class="projectItem a site-item" target="_blank" href="' + escHtml(url) + '">' + inner + '</a>';
+    }
+    if (qrcode) {
+        return '<div class="projectItem a site-item site-item--mp-only">' + inner + '</div>';
+    }
+    return '<div class="projectItem a site-item">' + inner + '</div>';
+}
+
+function bindSiteMpButtons(container) {
+    if (!container) return;
+    container.querySelectorAll('.site-mp-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            pop(btn.getAttribute('data-qrcode'));
+        });
+    });
+    container.querySelectorAll('.site-item--mp-only').forEach(function (card) {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', function () {
+            var btn = card.querySelector('.site-mp-btn');
+            if (btn) pop(btn.getAttribute('data-qrcode'));
+        });
+    });
 }
 
 function renderContent(data) {
@@ -61,9 +101,8 @@ function renderContent(data) {
 
     var sitesList = document.getElementById('sites-list');
     if (sitesList) {
-        sitesList.innerHTML = data.sites.map(function (s) {
-            return '<a class="projectItem a" target="_blank" href="' + s.url + '"><div class="projectItemLeft"><h1>' + s.title + '</h1><p>' + s.desc + '</p></div><div class="projectItemRight"><img src="' + s.img + '" alt=""></div></a>';
-        }).join('');
+        sitesList.innerHTML = data.sites.map(buildSiteItemHtml).join('');
+        bindSiteMpButtons(sitesList);
     }
     var projectsList = document.getElementById('projects-list');
     if (projectsList) {
