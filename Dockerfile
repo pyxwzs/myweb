@@ -1,5 +1,5 @@
-# Python 3.10 slim — Flask 站点
-FROM docker.1ms.run/python:3.10-slim
+# Python 3.12 slim — Flask 站点
+FROM docker.m.daocloud.io/library/python:3.12-slim
 
 WORKDIR /app
 
