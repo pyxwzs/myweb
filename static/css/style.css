@@ -84,10 +84,12 @@ html[data-theme="Dark"] {
 body {
     height: 100%;
     min-height: 100vh;
+    min-height: 100dvh;
     width: 100%;
     position: relative;
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
     font-family: "b",  "a", sans-serif;
     background: var(--main_bg_color);
     background-repeat: no-repeat;
@@ -442,15 +444,21 @@ body {
 
 
 
-.iconItem:hover {
-    width: 95px;
-    transform: translateY(-2px);
-    background: var(--item_hover_color);
+@media (hover: hover) and (pointer: fine) {
+    .iconItem:hover {
+        width: 95px;
+        transform: translateY(-2px);
+        background: var(--item_hover_color);
+    }
+
+    .iconItem:hover .iconTip {
+        display: block;
+    }
 }
 
-
-.iconItem:hover .iconTip {
-    display: block;
+.iconItem:active {
+    transform: scale(0.96);
+    background: var(--item_hover_color);
 }
 
 .switch:hover {
@@ -687,77 +695,202 @@ footer a:hover {
 }
 
 @media (max-width: 800px) {
+    #fps {
+        display: none !important;
+    }
+
+    .page-main {
+        flex-direction: column;
+    }
+
     .page-left {
         display: none;
     }
 
-    .a .projectItemRight {
-        display: none;
-
-    }
-
-    .a .projectItemRight img {
-        display: none;
-
-    }
-
-    .a .projectItemLeft {
+    .mobile-brief {
+        display: block;
         width: 100%;
+        margin: 0 0 8px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        backdrop-filter: blur(var(--card_filter));
+        -webkit-backdrop-filter: blur(var(--card_filter));
+        background: var(--item_bg_color);
     }
 
-    .a {
-
-        width: calc(50% - 18px);
-  margin: 9px;
-
+    .mobile-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        margin-bottom: 10px;
+        font-size: 13px;
+        color: var(--item_left_text_color);
     }
 
-    .b {
-        height: 110px;
-        margin: 8px 15px;
-        width: calc(100% - 30px);
+    .mobile-meta-item:empty {
+        display: none;
     }
 
+    .mobile-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
 
+    .mobile-tags:empty {
+        display: none;
+    }
+
+    .mobile-tags .left-tag-item {
+        margin: 0;
+    }
 
     .page-right {
         width: 100%;
+        padding: 12px 16px 16px;
+    }
+
+    header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding-bottom: 4px;
+    }
+
+    .index-logo {
+        width: 96px;
+        max-width: 28vw;
+        margin-top: 8px;
     }
 
     .tanChiShe {
         width: 100%;
+        margin-top: 8px;
     }
 
-    .description {
-        font-size: 4vw;
+    .iconContainer {
+        margin-top: 14px;
+        justify-content: center;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
     }
 
     .welcome {
-        font-size: 10vw;
-        margin: 2vw 0;
-
+        font-size: clamp(26px, 8vw, 36px);
+        margin: 10px 0 8px;
+        line-height: 1.2;
     }
-    .iconContainer {
-  
-     margin-top: 4vw;
 
-}
-.projectItem{
-    padding: 10px;
-}
-    .projectItemLeft p {
-        font-size: 13px;
+    .description {
+        font-size: clamp(13px, 3.5vw, 16px);
+        line-height: 1.55;
+        max-width: 92vw;
+    }
+
+    .textBackground {
+        font-size: inherit;
+    }
+
+    .title {
+        font-size: 20px;
+        margin: 20px 0 10px;
+    }
+
+    footer {
+        width: calc(100% - 32px);
+        margin: 8px auto 12px;
+        padding: 10px 14px;
+    }
+
+    .projectList {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: space-between;
+    }
+
+    .projectItem.a,
+    .projectItem.b {
+        width: calc(50% - 6px) !important;
+        margin: 0 !important;
+        height: auto !important;
+        min-height: 130px;
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px 10px;
+        gap: 8px;
+    }
+
+    .projectItem:hover .projectItemLeft,
+    .projectItem:hover .projectItemRight {
+        width: 100% !important;
+    }
+
+    .projectItemLeft {
+        flex: 1;
+        min-width: 0;
+        width: 100% !important;
+        text-align: center;
     }
 
     .projectItemLeft h1 {
+        font-size: 14px;
+        line-height: 1.3;
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 
-        font-size: 18px;
+    .projectItemLeft p {
+        font-size: 11px;
+        margin-top: 4px;
+        line-height: 1.35;
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 
     .projectItem:hover h1 {
+        font-size: 14px;
+    }
 
-        font-size: 20px;
+    .projectItemRight {
+        display: flex !important;
+        width: 100% !important;
+        height: auto;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+    }
 
+    .projectItemRight img {
+        display: block !important;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        object-fit: cover;
+        transform: none !important;
+    }
+
+    .projectItem:hover .projectItemRight img {
+        transform: none !important;
+    }
+
+    .site-mp-btn {
+        top: 6px;
+        right: 6px;
+        width: 26px;
+        height: 26px;
+    }
+
+    .skill {
+        padding: 12px 0 4px;
     }
 
     .skill #skillWap {
@@ -768,18 +901,30 @@ footer a:hover {
         display: none;
     }
 
+    .tc-main {
+        width: 88vw;
+        max-width: 300px;
+    }
+}
 
+.mobile-brief {
+    display: none;
+}
 
+@media (max-width: 480px) {
+    .page-right {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
 
+    .mobile-brief {
+        padding: 12px 14px;
+    }
 
-
-
-
-
-
-
-
-
+    .card-404,
+    .page-404 .card-404 {
+        padding: 24px 20px;
+    }
 }
 
 

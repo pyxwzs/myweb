@@ -89,8 +89,24 @@ function renderContent(data) {
 
     var tagContainer = document.querySelector('.left-tag');
     if (tagContainer) {
-        tagContainer.innerHTML = data.tags.map(function (t) { return '<div class="left-tag-item">' + t + '</div>'; }).join('');
+        tagContainer.innerHTML = data.tags.map(function (t) { return '<div class="left-tag-item">' + escHtml(t) + '</div>'; }).join('');
     }
+
+    var mobileTags = document.getElementById('mobile-tags');
+    if (mobileTags) {
+        mobileTags.innerHTML = data.tags.map(function (t) { return '<div class="left-tag-item">' + escHtml(t) + '</div>'; }).join('');
+    }
+    var mobileLoc = document.getElementById('mobile-location');
+    var mobileSchool = document.getElementById('mobile-school');
+    var mobileBrief = document.querySelector('.mobile-brief');
+    if (mobileLoc) mobileLoc.textContent = data.profile.location || '';
+    if (mobileSchool) mobileSchool.textContent = data.profile.school || '';
+    if (mobileBrief) {
+        var hasBrief = (data.profile.location || data.profile.school || (data.tags && data.tags.length));
+        mobileBrief.style.display = hasBrief ? '' : 'none';
+    }
+    if (mobileLoc) mobileLoc.style.display = data.profile.location ? '' : 'none';
+    if (mobileSchool) mobileSchool.style.display = data.profile.school ? '' : 'none';
 
     var line = document.getElementById('line');
     if (line) {

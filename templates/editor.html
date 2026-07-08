@@ -278,6 +278,124 @@
         }
         .btn-upload-qrcode-cell:hover { background: rgba(65, 209, 255, 0.28); }
 
+        /* ══ 站点卡片（编辑器）══ */
+        .site-card {
+            display: block;
+            background: rgba(0,0,0,0.22);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .site-card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        .site-card-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+        }
+        .site-card-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .site-card-grid .sc-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+        .site-card-grid .sc-field > span {
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+        .site-card-grid .sc-full { grid-column: 1 / -1; }
+        .site-card-grid .sc-icon-row,
+        .site-card-grid .sc-mp-row {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .site-card-grid .sc-mp-row input { flex: 1; min-width: 0; }
+
+        /* ══ 移动端顶栏 ══ */
+        .editor-mobile-bar {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 200;
+            height: 52px;
+            padding: 0 12px;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.72);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+        }
+        .editor-mobile-bar button {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--border);
+            color: #fff;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            font-family: "b", system-ui, sans-serif;
+        }
+        .editor-mobile-bar .save-mobile {
+            background: linear-gradient(135deg, var(--accent), var(--red));
+            border: none;
+        }
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: transparent;
+            z-index: 90;
+        }
+        .sidebar-backdrop.show { display: block; }
+
+        @media (max-width: 900px) {
+            .editor-mobile-bar { display: flex; }
+            .sidebar {
+                width: min(280px, 86vw);
+                transform: translateX(-110%);
+                transition: transform 0.25s ease;
+            }
+            .sidebar.open { transform: translateX(0); }
+            .main {
+                margin-left: 0;
+                padding: 64px 14px 24px;
+            }
+            .f-half, .f-third { flex: 1 1 100%; }
+            .site-card-grid { grid-template-columns: 1fr; }
+            .list-row:not(.site-card) {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .list-row:not(.site-card) input,
+            .list-row:not(.site-card) select {
+                flex: 1 1 100%;
+                width: 100%;
+            }
+            .card-img-wrap { max-width: none; width: 100%; }
+            .lock-card {
+                width: calc(100% - 40px);
+                max-width: 360px;
+                padding: 32px 24px;
+            }
+        }
+
         /* ══ 按钮 ══ */
         .btn {
             display: inline-flex; align-items: center; justify-content: center;
@@ -525,6 +643,13 @@
 
 <!-- ══ 编辑器主体（未解锁时隐藏）══ -->
 <div id="editor-body" style="display:none">
+
+<div class="editor-mobile-bar">
+    <button type="button" id="nav-toggle">☰ 菜单</button>
+    <span style="font-size:14px;font-weight:700;">内容编辑器</span>
+    <button type="button" class="save-mobile" id="save-mobile">保存</button>
+</div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
 <!-- ══ 侧边导航 ══ -->
 <aside class="sidebar">
@@ -1098,15 +1223,20 @@ function buildCardImgSelect(selectedUrl) {
 
 function makeSiteCardRow(item) {
     var d = document.createElement('div');
-    d.className = 'list-row site-row';
-    d.innerHTML = '<input type="text"  data-t="title" placeholder="标题"  value="' + esc(item.title||'') + '">'
-                + '<input type="text"  data-t="desc"  placeholder="描述"  value="' + esc(item.desc||'') + '">'
-                + '<input type="url"   data-t="url"   placeholder="链接（可选）"  value="' + esc(item.url||'') + '">'
-                + buildCardImgSelect(item.img || '')
-                + '<button type="button" class="btn-upload-cell" title="上传新图标（保存为 iN）">📤</button>'
-                + '<input type="text" data-t="qrcode" placeholder="小程序码图片 URL（可选）" value="' + esc(item.qrcode||'') + '">'
-                + '<button type="button" class="btn-upload-qrcode-cell" title="上传小程序码">📱</button>'
-                + '<button type="button" class="btn btn-del rm-row rm-site">删除</button>';
+    d.className = 'site-card list-row';
+    d.innerHTML = '<div class="site-card-head sc-full">'
+                + '<span class="site-card-title">站点条目</span>'
+                + '<button type="button" class="btn btn-del rm-row rm-site">删除</button>'
+                + '</div>'
+                + '<div class="site-card-grid">'
+                + '<label class="sc-field"><span>标题</span><input type="text" data-t="title" placeholder="站点名称" value="' + esc(item.title||'') + '"></label>'
+                + '<label class="sc-field"><span>链接</span><input type="url" data-t="url" placeholder="https://..." value="' + esc(item.url||'') + '"></label>'
+                + '<label class="sc-field sc-full"><span>描述</span><input type="text" data-t="desc" placeholder="简短描述" value="' + esc(item.desc||'') + '"></label>'
+                + '<div class="sc-icon-row">' + buildCardImgSelect(item.img || '')
+                + '<button type="button" class="btn-upload-cell" title="上传图标">📤 上传图标</button></div>'
+                + '<div class="sc-mp-row"><input type="text" data-t="qrcode" placeholder="小程序码 URL（可选）" value="' + esc(item.qrcode||'') + '">'
+                + '<button type="button" class="btn-upload-qrcode-cell" title="上传小程序码">📱 上传码</button></div>'
+                + '</div>';
     return d;
 }
 
@@ -1137,7 +1267,7 @@ document.getElementById('add-project').addEventListener('click', function() {
         if (e.target.classList.contains('rm-row')) e.target.closest('.list-row').remove();
         if (e.target.classList.contains('btn-upload-cell')) {
             var row = e.target.closest('.list-row');
-            var inp = row.querySelector('[data-t="img"]');
+            var inp = row && row.querySelector('[data-t="img"]');
             if (!inp) return;
             var fi = document.createElement('input');
             fi.type = 'file';
@@ -1318,6 +1448,37 @@ document.getElementById('confirm-modal').addEventListener('click', function(e) {
             fillData({});
             syncPreviews();
         });
+})();
+
+(function editorMobileNav() {
+    var sidebar = document.querySelector('.sidebar');
+    var backdrop = document.getElementById('sidebar-backdrop');
+    var toggle = document.getElementById('nav-toggle');
+    var saveMobile = document.getElementById('save-mobile');
+    if (!sidebar || !toggle) return;
+
+    function closeNav() {
+        sidebar.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('show');
+    }
+    function openNav() {
+        sidebar.classList.add('open');
+        if (backdrop) backdrop.classList.add('show');
+    }
+
+    toggle.addEventListener('click', function() {
+        if (sidebar.classList.contains('open')) closeNav();
+        else openNav();
+    });
+    if (backdrop) backdrop.addEventListener('click', closeNav);
+    sidebar.querySelectorAll('.nav-item').forEach(function(a) {
+        a.addEventListener('click', closeNav);
+    });
+    if (saveMobile) {
+        saveMobile.addEventListener('click', function() {
+            document.getElementById('save-local').click();
+        });
+    }
 })();
 </script>
 </body>
