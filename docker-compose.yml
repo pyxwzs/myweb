@@ -10,12 +10,8 @@ services:
     environment:
       PORT: "5001"
     volumes:
-      # SQLite：站点 JSON、编辑器密码等
-      - myweb_data:/app/data
-      # 用户上传图片（站点图标 iN、slot_* 等）
-      - myweb_uploads:/app/static/uploads
+      # SQLite：站点 JSON、编辑器密码等（挂载到项目本地目录）
+      - ./data:/app/data
+      # 用户上传图片（站点图标 iN、slot_*、mp* 等）
+      - ./static/uploads:/app/static/uploads
     restart: unless-stopped
-
-volumes:
-  myweb_data:
-  myweb_uploads:
