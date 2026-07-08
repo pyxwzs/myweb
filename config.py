@@ -43,7 +43,8 @@ ALLOWED_UPLOAD_EXT = frozenset({".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico"
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 MEDIA_POOL_KIND = "site_icon"
+MEDIA_MP_KIND = "miniprogram"
 MEDIA_SLOT_KINDS = frozenset(
     {"avatar", "avatar_frame", "favicon", "sponsor", "qq"},
 )
-ALL_MEDIA_KINDS = frozenset({MEDIA_POOL_KIND}) | MEDIA_SLOT_KINDS
+ALL_MEDIA_KINDS = frozenset({MEDIA_POOL_KIND, MEDIA_MP_KIND}) | MEDIA_SLOT_KINDS

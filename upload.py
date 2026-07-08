@@ -8,10 +8,25 @@ from pathlib import Path
 
 from config import (
     ALLOWED_UPLOAD_EXT,
+    MEDIA_MP_KIND,
     MEDIA_POOL_KIND,
     MEDIA_SLOT_KINDS,
     UPLOAD_DIR,
 )
+
+
+def detect_image_ext(data: bytes) -> str | None:
+    if len(data) >= 3 and data[:3] == b"\xff\xd8\xff":
+        return ".jpg"
+    if len(data) >= 8 and data[:8] == b"\x89PNG\r\n\x1a\n":
+        return ".png"
+    if len(data) >= 6 and data[:6] in (b"GIF87a", b"GIF89a"):
+        return ".gif"
+    if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return ".webp"
+    if len(data) >= 4 and data[:4] in (b"<svg", b"<?xm"):
+        return ".svg"
+    return None
 
 
 def _safe_unlink_upload_url(url: str) -> None:
@@ -46,6 +61,36 @@ def init_media_assets(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_media_assets_kind ON media_assets(kind)"
     )
+
+
+def _parse_mp_index_from_stem(stem: str) -> int | None:
+    m = re.match(r"^mp(\d+)$", stem, re.IGNORECASE)
+    if not m:
+        return None
+    return int(m.group(1))
+
+
+def _max_mp_index(conn: sqlite3.Connection) -> int:
+    m = 0
+    for row in conn.execute(
+        "SELECT path FROM media_assets WHERE kind = ?", (MEDIA_MP_KIND,)
+    ).fetchall():
+        stem = Path(row["path"].rsplit("/", 1)[-1]).stem
+        n = _parse_mp_index_from_stem(stem)
+        if n is not None:
+            m = max(m, n)
+    if UPLOAD_DIR.is_dir():
+        for f in UPLOAD_DIR.iterdir():
+            if not f.is_file() or f.name.startswith("."):
+                continue
+            n2 = _parse_mp_index_from_stem(f.stem)
+            if n2 is not None:
+                m = max(m, n2)
+    return m
+
+
+def _next_mp_label(conn: sqlite3.Connection) -> str:
+    return f"mp{_max_mp_index(conn) + 1}"
 
 
 def _parse_site_icon_index_from_stem(stem: str) -> int | None:
@@ -159,6 +204,18 @@ def store_upload(kind: str, ext: str, data: bytes) -> dict:
             "INSERT INTO media_assets (kind, path, label) VALUES (?, ?, ?)",
             (MEDIA_POOL_KIND, url, label),
         )
+    elif kind == MEDIA_MP_KIND:
+        label = _next_mp_label(conn)
+        name = f"{label}{ext}"
+        url = f"/static/uploads/{name}"
+        dest = UPLOAD_DIR / name
+        if dest.is_file():
+            dest.unlink()
+        dest.write_bytes(data)
+        conn.execute(
+            "INSERT INTO media_assets (kind, path, label) VALUES (?, ?, ?)",
+            (MEDIA_MP_KIND, url, label),
+        )
     else:
         for p in UPLOAD_DIR.glob(f"slot_{kind}.*"):
             p.unlink(missing_ok=True)
@@ -180,7 +237,7 @@ def store_upload(kind: str, ext: str, data: bytes) -> dict:
     conn.close()
 
     out: dict = {"ok": True, "url": url, "kind": kind}
-    if kind == MEDIA_POOL_KIND and label:
+    if kind in (MEDIA_POOL_KIND, MEDIA_MP_KIND) and label:
         out["label"] = label
     return out
 

@@ -151,7 +151,7 @@ Compose 已配置两个卷：
     "desc": "描述",
     "url": "https://example.com",
     "img": "/static/uploads/i1.png",
-    "qrcode": "/static/uploads/i2.png
+    "qrcode": "/static/uploads/mp1.jpg"
   }],
   "projects": [],
   "links": { "github": "", "mail": "", "sponsorImg": "", "qqImg": "" },

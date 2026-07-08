@@ -12,10 +12,11 @@ from config import (
     ALL_MEDIA_KINDS,
     ALLOWED_UPLOAD_EXT,
     MAX_UPLOAD_BYTES,
+    MEDIA_MP_KIND,
     MEDIA_POOL_KIND,
 )
 from database import connect, get_password, init_db
-from upload import build_media_list_payload, store_upload
+from upload import build_media_list_payload, detect_image_ext, store_upload
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -37,18 +38,20 @@ def api_upload():
             400,
             {"Content-Type": "application/json; charset=utf-8"},
         )
-    raw_name = secure_filename(f.filename)
+    raw_name = secure_filename(f.filename or "")
     ext = Path(raw_name).suffix.lower()
+    data = f.read()
+    if ext not in ALLOWED_UPLOAD_EXT:
+        ext = detect_image_ext(data) or ""
     if ext not in ALLOWED_UPLOAD_EXT:
         return (
             json.dumps(
-                {"ok": False, "msg": "仅支持图片：png/jpg/gif/webp/ico/svg"},
+                {"ok": False, "msg": "无法识别图片格式，请使用 png/jpg/gif/webp"},
                 ensure_ascii=False,
             ),
             400,
             {"Content-Type": "application/json; charset=utf-8"},
         )
-    data = f.read()
     if len(data) > MAX_UPLOAD_BYTES:
         return (
             json.dumps({"ok": False, "msg": "文件过大（最大 5MB）"}, ensure_ascii=False),

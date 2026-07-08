@@ -628,7 +628,7 @@
     <!-- 站点列表 -->
     <div class="panel" id="sec-sites">
         <div class="panel-title"><span>🔗</span> 站点列表 (site)</div>
-        <p class="panel-hint">图标在库中为 <code style="opacity:0.75;">i1、i2…</code> 编号；下拉可选，右侧为缩略图。📤 上传会保存为下一个编号（如 i7）。📱 可上传小程序码，首页卡片右上角点击弹出二维码。</p>
+        <p class="panel-hint">图标在库中为 <code style="opacity:0.75;">i1、i2…</code> 编号；下拉可选，右侧为缩略图。📤 上传会保存为下一个编号（如 i7）。📱 小程序码单独保存为 <code style="opacity:0.75;">mp1、mp2…</code>，不会进入图标库。</p>
         <div id="sites-list"></div>
         <button class="btn btn-ghost" id="add-site">＋ 添加站点</button>
     </div>
@@ -924,6 +924,8 @@ function uploadImageFile(file, inputEl, previewEl, kind) {
                 syncPreviews();
                 if (kind === 'site_icon') {
                     toast(res.label ? ('✅ 已保存为 ' + res.label) : '✅ 已加入站点图标库');
+                } else if (kind === 'miniprogram') {
+                    toast(res.label ? ('✅ 小程序码已保存为 ' + res.label) : '✅ 小程序码上传成功');
                 } else {
                     toast('✅ 上传成功（已覆盖旧文件）');
                 }
@@ -1153,7 +1155,7 @@ document.getElementById('add-project').addEventListener('click', function() {
             fiQ.type = 'file';
             fiQ.accept = 'image/*';
             fiQ.onchange = function() {
-                if (fiQ.files && fiQ.files[0]) uploadImageFile(fiQ.files[0], inpQ, null, 'site_icon');
+                if (fiQ.files && fiQ.files[0]) uploadImageFile(fiQ.files[0], inpQ, null, 'miniprogram');
             };
             fiQ.click();
         }
