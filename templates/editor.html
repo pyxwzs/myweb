@@ -371,12 +371,14 @@
                 width: min(280px, 86vw);
                 transform: translateX(-110%);
                 transition: transform 0.25s ease;
+                z-index: 100;
             }
             .sidebar.open { transform: translateX(0); }
             .main {
                 margin-left: 0;
                 padding: 64px 14px 24px;
             }
+            .panel { scroll-margin-top: 68px; }
             .f-half, .f-third { flex: 1 1 100%; }
             .site-card-grid { grid-template-columns: 1fr; }
             .list-row:not(.site-card) {
@@ -1472,7 +1474,21 @@ document.getElementById('confirm-modal').addEventListener('click', function(e) {
     });
     if (backdrop) backdrop.addEventListener('click', closeNav);
     sidebar.querySelectorAll('.nav-item').forEach(function(a) {
-        a.addEventListener('click', closeNav);
+        a.addEventListener('click', function(e) {
+            var href = a.getAttribute('href');
+            if (href && href.charAt(0) === '#') {
+                var target = document.querySelector(href);
+                if (target) {
+                    e.preventDefault();
+                    closeNav();
+                    setTimeout(function() {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 240);
+                    return;
+                }
+            }
+            closeNav();
+        });
     });
     if (saveMobile) {
         saveMobile.addEventListener('click', function() {
